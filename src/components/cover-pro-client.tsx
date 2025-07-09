@@ -259,7 +259,7 @@ function CoverProFormBody({
                 </Button>
                 <Button className="w-full" onClick={handleOpenInGmail}>
                     <Mail className="h-4 w-4" />
-                    <span className="ml-2">Open in Gmail</span>
+                    <span className="ml-2">Send Email</span>
                 </Button>
             </CardFooter>
         </Card>
@@ -399,8 +399,21 @@ export default function CoverProClient() {
   const handleOpenInGmail = () => {
     if (generatedEmail) {
       const { to, subject, body } = generatedEmail;
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(gmailUrl, '_blank');
+      
+      // Check if user is on mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        typeof window !== 'undefined' ? window.navigator.userAgent : ''
+      );
+      
+      if (isMobile) {
+        // Use mailto: protocol for mobile devices to open native mail app
+        const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoUrl;
+      } else {
+        // Use Gmail web URL for desktop
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(gmailUrl, '_blank');
+      }
     }
   };
 
