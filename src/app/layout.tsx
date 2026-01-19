@@ -18,7 +18,12 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'ApplyGenius - AI-Powered Job Application Emails',
   description: 'Craft compelling, personalized job application emails with AI precision. Upload your resume and job posting for instant professional outreach.',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
