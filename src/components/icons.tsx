@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export function CoverProIcon(props: SVGProps<SVGSVGElement>) {
+export function ApplyGeniusIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -14,10 +14,13 @@ export function CoverProIcon(props: SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-      <path d="m5 12 3 3 3-3" />
-      <path d="m5 18 3-3 3 3" />
+      <path d="M9 12l2 2 4-4" />
+      <path d="M21 12c.552 0 1-.448 1-1V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v6c0 .552.448 1 1 1" />
+      <path d="M3 13a9 9 0 1 0 9-9" />
+      <path d="M12 7v5l3 3" />
     </svg>
   );
 }
+
+// Keep the old name for backward compatibility
+export const CoverProIcon = ApplyGeniusIcon;

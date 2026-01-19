@@ -81,4 +81,56 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Mobile-specific improvements */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px; /* Slightly smaller base font size on mobile */
+    }
+    
+    /* Improve touch targets */
+    button, 
+    [role="button"], 
+    input[type="submit"], 
+    input[type="button"] {
+      min-height: 44px; /* Apple's recommended minimum touch target */
+    }
+    
+    /* Better text readability on mobile */
+    p, li, span {
+      line-height: 1.6;
+    }
+    
+    /* Prevent horizontal scroll */
+    body {
+      overflow-x: hidden;
+    }
+  }
+  
+  /* Improve focus states for accessibility */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* Custom utilities for mobile responsiveness */
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }
