@@ -77,7 +77,7 @@ export async function generateEmailAction(
       
       if (!hasAttachmentMention) {
         // Add a professional note about the attachment
-        const attachmentNote = `\n\nI have attached my resume (${resumePdfFile.name}) for your review.`;
+        const attachmentNote = `\n\nI have attached my resume for your review. Please find it attached to this email.`;
         result.email.body += attachmentNote;
       }
     }

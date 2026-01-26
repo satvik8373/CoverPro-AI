@@ -59,20 +59,18 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Helper function to create email with attachment
-const createEmailWithAttachment = (email: NonNullable<GeneratePersonalizedEmailOutput['email']>, resumeFile: File | null) => {
+// Helper function to create mailto link with proper encoding
+const createMailtoLink = (email: NonNullable<GeneratePersonalizedEmailOutput['email']>, resumeFile: File | null) => {
   const subject = encodeURIComponent(email.subject);
-  const body = encodeURIComponent(email.body);
+  let body = email.body;
   
   if (resumeFile) {
-    // For Gmail web, we can't directly attach files, but we can mention it in the body
-    const bodyWithAttachment = encodeURIComponent(
-      email.body + '\n\n[Please attach your resume file: ' + resumeFile.name + ']'
-    );
-    return `https://mail.google.com/mail/?view=cm&fs=1&to=${email.to}&su=${subject}&body=${bodyWithAttachment}`;
+    // Add a note about the attachment since mailto can't include actual attachments
+    body += `\n\n[Please remember to attach your resume file: ${resumeFile.name}]`;
   }
   
-  return `https://mail.google.com/mail/?view=cm&fs=1&to=${email.to}&su=${subject}&body=${body}`;
+  const encodedBody = encodeURIComponent(body);
+  return `mailto:${email.to}?subject=${subject}&body=${encodedBody}`;
 };
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
@@ -280,10 +278,25 @@ export default function CoverProClient() {
     URL.revokeObjectURL(url);
   };
 
+  const handleOpenInEmailClient = () => {
+    if (!generatedEmail) return;
+    
+    const mailtoUrl = createMailtoLink(generatedEmail, resumePdfFile);
+    window.location.href = mailtoUrl;
+  };
+
   const handleOpenInGmail = () => {
     if (!generatedEmail) return;
     
-    const gmailUrl = createEmailWithAttachment(generatedEmail, resumePdfFile);
+    const subject = encodeURIComponent(generatedEmail.subject);
+    let body = generatedEmail.body;
+    
+    if (resumePdfFile) {
+      body += `\n\n[Please remember to attach your resume file: ${resumePdfFile.name}]`;
+    }
+    
+    const encodedBody = encodeURIComponent(body);
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${generatedEmail.to}&su=${subject}&body=${encodedBody}`;
     window.open(gmailUrl, '_blank');
   };
 
@@ -912,7 +925,18 @@ export default function CoverProClient() {
                             <span className="text-gray-900 text-sm truncate min-w-0 flex-1">
                               {resumePdfFile.name}
                             </span>
-                            <Badge variant="outline" className="text-xs flex-shrink-0">PDF</Badge>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge variant="outline" className="text-xs">PDF</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleDownloadResume}
+                                className="h-6 w-6 p-0 hover:bg-gray-100"
+                                title="Download resume"
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -973,33 +997,64 @@ export default function CoverProClient() {
             
             {/* Action Buttons - Modern Design */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={handleCopy} 
-                  variant="outline" 
-                  size="lg"
-                  className="flex-1 flex items-center justify-center gap-2 h-14 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-sm font-medium transition-all duration-200"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Copied to Clipboard!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clipboard className="h-4 w-4 flex-shrink-0" />
-                      <span>Copy Email</span>
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  onClick={handleOpenInGmail} 
-                  size="lg"
-                  className="flex-1 flex items-center justify-center gap-2 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl text-sm font-medium transition-all duration-200"
-                >
-                  <Send className="h-4 w-4 flex-shrink-0" />
-                  <span>Send via Gmail</span>
-                </Button>
+              <div className="flex flex-col gap-3">
+                {/* Primary Actions Row */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    onClick={handleCopy} 
+                    variant="outline" 
+                    size="lg"
+                    className="flex-1 flex items-center justify-center gap-2 h-14 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-sm font-medium transition-all duration-200"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span>Copied to Clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clipboard className="h-4 w-4 flex-shrink-0" />
+                        <span>Copy Email</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={handleOpenInEmailClient} 
+                    size="lg"
+                    className="flex-1 flex items-center justify-center gap-2 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl text-sm font-medium transition-all duration-200"
+                  >
+                    <Send className="h-4 w-4 flex-shrink-0" />
+                    <span>Open in Email App</span>
+                  </Button>
+                </div>
+                
+                {/* Secondary Action */}
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={handleOpenInGmail} 
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-sm transition-all duration-200"
+                  >
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <span>Or open in Gmail web</span>
+                  </Button>
+                </div>
+                
+                {/* Attachment Reminder */}
+                {resumePdfFile && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Paperclip className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium text-amber-800 mb-1">Don't forget your resume!</p>
+                        <p className="text-amber-700">
+                          Remember to attach <span className="font-medium">{resumePdfFile.name}</span> when sending your email.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
