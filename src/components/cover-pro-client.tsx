@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UploadCloud, FileText, X, AlertCircle, Clipboard, Check, Mail, User, Download, Paperclip, Sparkles, Send, Eye, Edit3 } from 'lucide-react';
+import { UploadCloud, FileText, X, AlertCircle, Clipboard, Check, Mail, User, Download, Paperclip, Sparkles, Send, Eye, Edit3, Printer } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const initialState: { result: GeneratePersonalizedEmailOutput | null; error: string | null } = {
@@ -73,6 +73,15 @@ const createMailtoLink = (email: NonNullable<GeneratePersonalizedEmailOutput['em
   return `mailto:${email.to}?subject=${subject}&body=${encodedBody}`;
 };
 
+const escapeHtml = (value: string): string => {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
@@ -108,6 +117,7 @@ export default function CoverProClient() {
   const [jobImageUrl, setJobImageUrl] = useState<string | null>(null);
   const [resumePdfFile, setResumePdfFile] = useState<File | null>(null);
   const [generatedEmail, setGeneratedEmail] = useState<GeneratePersonalizedEmailOutput['email'] | null>(null);
+  const [generatedCoverLetter, setGeneratedCoverLetter] = useState<GeneratePersonalizedEmailOutput['coverLetter'] | null>(null);
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadProgress, setUploadProgress] = useState({ job: 0, resume: 0 });
@@ -165,9 +175,68 @@ export default function CoverProClient() {
       }
       
       setGeneratedEmail(emailWithSignature);
+      setGeneratedCoverLetter(state.result.coverLetter);
       setCurrentStep(2);
     }
   }, [state.result, userDetails]);
+
+  const handleCoverLetterEdit = (field: keyof NonNullable<typeof generatedCoverLetter>, value: string) => {
+    if (generatedCoverLetter) {
+      setGeneratedCoverLetter({ ...generatedCoverLetter, [field]: value });
+    }
+  };
+
+  const handleDownloadCoverLetterPdf = () => {
+    if (!generatedCoverLetter) return;
+
+    const applicantName = escapeHtml(userDetails.name || 'Applicant Name');
+    const applicantEmail = escapeHtml(userDetails.email || 'applicant@email.com');
+    const applicantPhone = escapeHtml(userDetails.phone || 'Phone Number');
+    const companyName = escapeHtml(generatedCoverLetter.companyName);
+    const positionTitle = escapeHtml(generatedCoverLetter.positionTitle);
+    const hiringManager = escapeHtml(generatedCoverLetter.hiringManager);
+    const coverLetterContent = escapeHtml(generatedCoverLetter.content);
+
+    const printableHtml = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${positionTitle} Cover Letter</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 48px; color: #111827; line-height: 1.6; }
+            .meta { margin-bottom: 24px; font-size: 14px; }
+            .meta strong { display: block; font-size: 18px; margin-bottom: 4px; }
+            .section { margin-bottom: 18px; }
+            .content { white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <div class="meta">
+            <strong>${applicantName}</strong>
+            <div>${applicantEmail}</div>
+            <div>${applicantPhone}</div>
+          </div>
+          <div class="section"><strong>Company:</strong> ${companyName}</div>
+          <div class="section"><strong>Position:</strong> ${positionTitle}</div>
+          <div class="section"><strong>Hiring Manager:</strong> ${hiringManager}</div>
+          <div class="section content">${coverLetterContent}</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1000');
+    if (!printWindow) {
+      alert('Unable to open print window. Please allow popups and try again.');
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(printableHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
   const simulateUpload = (type: 'job' | 'resume') => {
     let progress = 0;
@@ -869,7 +938,7 @@ export default function CoverProClient() {
           <div className="p-4 sm:p-6">
             <div className="w-full max-w-none">
               <Tabs defaultValue="preview" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 h-14 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-100 h-14 p-1 rounded-lg">
                 <TabsTrigger 
                   value="preview" 
                   className="flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm px-3 py-2 rounded-md transition-all duration-200 font-medium"
@@ -883,6 +952,13 @@ export default function CoverProClient() {
                 >
                   <Edit3 className="h-4 w-4 flex-shrink-0" />
                   <span>Edit</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="cover-letter"
+                  className="flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm px-3 py-2 rounded-md transition-all duration-200 font-medium"
+                >
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span>Cover Letter</span>
                 </TabsTrigger>
               </TabsList>
               
@@ -992,6 +1068,67 @@ export default function CoverProClient() {
                   </div>
                 </div>
               </TabsContent>
+
+              <TabsContent value="cover-letter" className="space-y-4 mt-0">
+                {generatedCoverLetter ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyName" className="text-sm font-medium text-gray-900">Company</Label>
+                        <Input
+                          id="companyName"
+                          value={generatedCoverLetter.companyName}
+                          onChange={(e) => handleCoverLetterEdit('companyName', e.target.value)}
+                          className="focus:ring-2 focus:ring-blue-500 border-gray-300 text-sm h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="positionTitle" className="text-sm font-medium text-gray-900">Position</Label>
+                        <Input
+                          id="positionTitle"
+                          value={generatedCoverLetter.positionTitle}
+                          onChange={(e) => handleCoverLetterEdit('positionTitle', e.target.value)}
+                          className="focus:ring-2 focus:ring-blue-500 border-gray-300 text-sm h-11"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="hiringManager" className="text-sm font-medium text-gray-900">Hiring Manager</Label>
+                      <Input
+                        id="hiringManager"
+                        value={generatedCoverLetter.hiringManager}
+                        onChange={(e) => handleCoverLetterEdit('hiringManager', e.target.value)}
+                        className="focus:ring-2 focus:ring-blue-500 border-gray-300 text-sm h-11"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="coverLetterContent" className="text-sm font-medium text-gray-900">Cover Letter Content</Label>
+                      <Textarea
+                        id="coverLetterContent"
+                        value={generatedCoverLetter.content}
+                        onChange={(e) => handleCoverLetterEdit('content', e.target.value)}
+                        className="min-h-[350px] sm:min-h-[400px] focus:ring-2 focus:ring-blue-500 border-gray-300 text-sm w-full resize-y mobile-scroll"
+                        placeholder="Your cover letter content..."
+                      />
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        Your cover letter is editable. Click <strong>Download as PDF</strong> to open the print dialog and save a PDF version.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <Alert className="border-amber-200 bg-amber-50">
+                    <AlertCircle className="h-4 w-4 text-amber-700" />
+                    <AlertDescription className="text-amber-800">
+                      Cover letter could not be generated from the uploaded references. Please regenerate and try again.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
             </Tabs>
             </div>
             
@@ -1040,6 +1177,20 @@ export default function CoverProClient() {
                     <span>Or open in Gmail web</span>
                   </Button>
                 </div>
+
+                {generatedCoverLetter && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleDownloadCoverLetterPdf}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 border-gray-300 hover:bg-gray-50 text-sm"
+                    >
+                      <Printer className="h-4 w-4" />
+                      <span>Download Cover Letter as PDF</span>
+                    </Button>
+                  </div>
+                )}
                 
                 {/* Attachment Reminder */}
                 {resumePdfFile && (
@@ -1063,4 +1214,3 @@ export default function CoverProClient() {
     </div>
   );
 }
-

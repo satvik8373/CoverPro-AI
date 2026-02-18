@@ -49,6 +49,14 @@ const GeneratePersonalizedEmailOutputSchema = z.object({
     subject: z.string().describe('The subject line of the email.'),
     body: z.string().describe('The body of the email.'),
   }),
+  coverLetter: z.object({
+    companyName: z.string().describe('The company name extracted from the job details image.'),
+    positionTitle: z.string().describe('The role title extracted from the job details image.'),
+    hiringManager: z.string().describe('The hiring manager name when available, otherwise "Hiring Manager".'),
+    content: z
+      .string()
+      .describe('A professional, job-specific cover letter body without a signature block.'),
+  }),
 });
 export type GeneratePersonalizedEmailOutput = z.infer<
   typeof GeneratePersonalizedEmailOutputSchema
@@ -95,7 +103,14 @@ Your job is to:
 3. Prioritize the provided candidate details (Name, Skills, Projects) if available. Use the resume to supplement this information.
 4. Generate a personalized, professional job application email.
 5. Extract the recipient's email address from the job details image.
-6. DO NOT include a signature at the end of the email. The signature will be added automatically by the client.
+6. Generate a tailored cover letter that matches the company and the role from the image.
+7. DO NOT include a signature at the end of the email. The signature will be added automatically by the client.
+
+For the cover letter output:
+- companyName should come from the job/company information in the image.
+- positionTitle should come from the job title in the image.
+- hiringManager should use a real name if visible, otherwise set it to "Hiring Manager".
+- content should be concise, specific to the job requirements, and reference candidate strengths from the provided inputs/resume.
 
 Constraints:
 - Keep the tone professional and concise.
