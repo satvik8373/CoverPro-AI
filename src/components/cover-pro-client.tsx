@@ -73,6 +73,15 @@ const createMailtoLink = (email: NonNullable<GeneratePersonalizedEmailOutput['em
   return `mailto:${email.to}?subject=${subject}&body=${encodedBody}`;
 };
 
+const escapeHtml = (value: string): string => {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
@@ -180,16 +189,20 @@ export default function CoverProClient() {
   const handleDownloadCoverLetterPdf = () => {
     if (!generatedCoverLetter) return;
 
-    const applicantName = userDetails.name || 'Applicant Name';
-    const applicantEmail = userDetails.email || 'applicant@email.com';
-    const applicantPhone = userDetails.phone || 'Phone Number';
+    const applicantName = escapeHtml(userDetails.name || 'Applicant Name');
+    const applicantEmail = escapeHtml(userDetails.email || 'applicant@email.com');
+    const applicantPhone = escapeHtml(userDetails.phone || 'Phone Number');
+    const companyName = escapeHtml(generatedCoverLetter.companyName);
+    const positionTitle = escapeHtml(generatedCoverLetter.positionTitle);
+    const hiringManager = escapeHtml(generatedCoverLetter.hiringManager);
+    const coverLetterContent = escapeHtml(generatedCoverLetter.content);
 
     const printableHtml = `
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>${generatedCoverLetter.positionTitle} Cover Letter</title>
+          <title>${positionTitle} Cover Letter</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 48px; color: #111827; line-height: 1.6; }
             .meta { margin-bottom: 24px; font-size: 14px; }
@@ -204,10 +217,10 @@ export default function CoverProClient() {
             <div>${applicantEmail}</div>
             <div>${applicantPhone}</div>
           </div>
-          <div class="section"><strong>Company:</strong> ${generatedCoverLetter.companyName}</div>
-          <div class="section"><strong>Position:</strong> ${generatedCoverLetter.positionTitle}</div>
-          <div class="section"><strong>Hiring Manager:</strong> ${generatedCoverLetter.hiringManager}</div>
-          <div class="section content">${generatedCoverLetter.content}</div>
+          <div class="section"><strong>Company:</strong> ${companyName}</div>
+          <div class="section"><strong>Position:</strong> ${positionTitle}</div>
+          <div class="section"><strong>Hiring Manager:</strong> ${hiringManager}</div>
+          <div class="section content">${coverLetterContent}</div>
         </body>
       </html>
     `;
